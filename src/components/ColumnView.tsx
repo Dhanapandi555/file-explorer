@@ -17,23 +17,65 @@ const ColumnView: React.FC<ColumnViewProps> = ({ currentPath, onNavigate }) => {
   useEffect(() => {
     // Build column hierarchy based on current path
     const buildColumns = async () => {
-      const pathParts = currentPath.split("/").filter(Boolean);
+      const rootPath = fileSystemAPI.getRootPath();
+      if (!rootPath || rootPath === "No folder selected") return;
+
       const newColumns: FileSystemItem[][] = [];
+      const selectedMap: { [key: number]: string } = {};
 
-      // Start from root
-      let currentItems = await fileSystemAPI.listDirectory("/Users/Dhandapani");
-      newColumns.push(currentItems);
+      // Always start with root directory content
+      const rootItems = await fileSystemAPI.listDirectory(rootPath);
+      newColumns.push(rootItems);
 
-      // Build each level
-      for (let i = 0; i < pathParts.length; i++) {
-        const partialPath = "/" + pathParts.slice(0, i + 1).join("/");
-        const nextItems = await fileSystemAPI.listDirectory(partialPath);
-        if (nextItems.length > 0) {
+      // If current path is root, we're done
+      if (currentPath === rootPath) {
+        setColumns(newColumns);
+        setSelectedInColumn({});
+        return;
+      }
+
+      // Handle subdirectories
+      // currentPath format: "Root/Sub/Sub2"
+      // We want to load:
+      // 1. Root content (already done)
+      // 2. Root/Sub content
+      // 3. Root/Sub/Sub2 content
+
+      // Remove root from path to get parts
+      const relativePath = currentPath.substring(rootPath.length + 1);
+      const parts = relativePath.split("/").filter(Boolean);
+
+      let currentBuildPath = rootPath;
+
+      // Select the item in the previous column that corresponds to the current folder
+      // For the root column (index 0), we need to select "Sub" if path is "Root/Sub"
+
+      // We need to reconstruct the path step by step
+      // If path is "Root/A/B"
+      // Column 0: List "Root". Selected: "Root/A"
+      // Column 1: List "Root/A". Selected: "Root/A/B"
+      // Column 2: List "Root/A/B". Selected: (none, or file if selected)
+
+      // Let's iterate through parts to build subsequent columns
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        const nextPath = `${currentBuildPath}/${part}`;
+
+        // Mark selection in current column
+        // The item "nextPath" should be selected in the current column (newColumns.length - 1)
+        selectedMap[newColumns.length - 1] = nextPath;
+
+        // Load content for this folder (next column)
+        const nextItems = await fileSystemAPI.listDirectory(nextPath);
+        if (nextItems.length > 0 || i < parts.length) {
           newColumns.push(nextItems);
         }
+
+        currentBuildPath = nextPath;
       }
 
       setColumns(newColumns);
+      setSelectedInColumn(selectedMap);
     };
 
     buildColumns();
