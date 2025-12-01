@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Download, ExternalLink, FileText, Image as ImageIcon, Code } from 'lucide-react';
-import { FileSystemItem } from '../types';
-import { fileSystemAPI } from '../utils/fileSystem';
+import React, { useState, useEffect } from "react";
+import { X, Download, FileText, Image as ImageIcon, Code } from "lucide-react";
+import { FileSystemItem } from "../types";
+import { fileSystemAPI } from "../utils/fileSystem";
 
 interface FilePreviewProps {
   file: FileSystemItem | null;
@@ -25,14 +25,14 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
 
       try {
         const ext = fileSystemAPI.getFileExtension(file.name);
-        
+
         // Image files
-        if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'].includes(ext)) {
+        if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp"].includes(ext)) {
           const dataUrl = await fileSystemAPI.readFileAsDataURL(file.path);
           if (dataUrl) {
             setContent(dataUrl);
           } else {
-            setError('Failed to load image');
+            setError("Failed to load image");
           }
         }
         // Text/Code files
@@ -41,24 +41,23 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
           if (text !== null) {
             setContent(text);
           } else {
-            setError('Failed to load file content');
+            setError("Failed to load file content");
           }
         }
         // PDF files
-        else if (ext === 'pdf') {
+        else if (ext === "pdf") {
           const fileObj = await fileSystemAPI.readFile(file.path);
           if (fileObj) {
             const url = URL.createObjectURL(fileObj);
             setContent(url);
           } else {
-            setError('Failed to load PDF');
+            setError("Failed to load PDF");
           }
-        }
-        else {
-          setError('Preview not available for this file type');
+        } else {
+          setError("Preview not available for this file type");
         }
       } catch (err) {
-        setError('Error loading file: ' + (err as Error).message);
+        setError("Error loading file: " + (err as Error).message);
       } finally {
         setLoading(false);
       }
@@ -70,15 +69,18 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
   if (!file) return null;
 
   const ext = fileSystemAPI.getFileExtension(file.name);
-  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'].includes(ext);
-  const isText = fileSystemAPI.isPreviewable(file.name) && !isImage && ext !== 'pdf';
-  const isPDF = ext === 'pdf';
+  const isImage = ["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp"].includes(
+    ext
+  );
+  const isText =
+    fileSystemAPI.isPreviewable(file.name) && !isImage && ext !== "pdf";
+  const isPDF = ext === "pdf";
 
   const handleDownload = async () => {
     const fileObj = await fileSystemAPI.readFile(file.path);
     if (fileObj) {
       const url = URL.createObjectURL(fileObj);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = file.name;
       a.click();
@@ -96,9 +98,12 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
             {isText && <Code size={20} className="text-green-400" />}
             {isPDF && <FileText size={20} className="text-red-400" />}
             <div>
-              <h2 className="text-lg font-semibold text-gray-200">{file.name}</h2>
+              <h2 className="text-lg font-semibold text-gray-200">
+                {file.name}
+              </h2>
               <p className="text-sm text-gray-400">
-                {fileSystemAPI.formatFileSize(file.size)} • {fileSystemAPI.getFileKind(file)}
+                {fileSystemAPI.formatFileSize(file.size)} •{" "}
+                {fileSystemAPI.getFileKind(file)}
               </p>
             </div>
           </div>
@@ -171,12 +176,8 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
 
         {/* Footer */}
         <div className="p-4 border-t border-mac-border flex items-center justify-between text-sm text-gray-400">
-          <div>
-            Modified: {fileSystemAPI.formatDate(file.modified)}
-          </div>
-          <div>
-            Press ESC to close
-          </div>
+          <div>Modified: {fileSystemAPI.formatDate(file.modified)}</div>
+          <div>Press ESC to close</div>
         </div>
       </div>
     </div>

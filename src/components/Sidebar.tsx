@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Home, 
-  HardDrive, 
-  Download, 
-  FileText, 
-  Image, 
-  Music, 
+import React, { useState, useEffect } from "react";
+import {
+  Home,
+  Download,
+  FileText,
+  Image,
+  Music,
   Video,
   Folder,
   Star,
   Clock,
-  Trash2
-} from 'lucide-react';
-import { SidebarItem, FileSystemItem } from '../types';
-import { fileSystemAPI } from '../utils/fileSystem';
+  Trash2,
+} from "lucide-react";
+import { SidebarItem, FileSystemItem } from "../types";
+import { fileSystemAPI } from "../utils/fileSystem";
 
 interface SidebarProps {
   selectedPath: string;
@@ -29,21 +28,21 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedPath, onSelectPath }) => {
     const loadRootItems = async () => {
       if (fileSystemAPI.hasAccess()) {
         const items = await fileSystemAPI.listDirectory(rootPath);
-        setRootItems(items.filter(item => item.isDirectory));
+        setRootItems(items.filter((item) => item.isDirectory));
       }
     };
     loadRootItems();
   }, [rootPath]);
 
-  const favoriteItems: SidebarItem[] = rootItems.slice(0, 5).map(item => ({
+  const favoriteItems: SidebarItem[] = rootItems.slice(0, 5).map((item) => ({
     name: item.name,
-    icon: 'folder',
+    icon: "folder",
     path: item.path,
-    color: 'text-blue-400',
+    color: "text-blue-400",
   }));
 
   const locationItems: SidebarItem[] = [
-    { name: rootPath, icon: 'home', path: rootPath, color: 'text-gray-400' },
+    { name: rootPath, icon: "home", path: rootPath, color: "text-gray-400" },
   ];
 
   const getIcon = (iconName: string) => {
@@ -69,7 +68,11 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedPath, onSelectPath }) => {
       className={`
         w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm
         transition-smooth hover:bg-mac-hover
-        ${selectedPath === item.path ? 'bg-mac-selected text-white' : 'text-gray-300'}
+        ${
+          selectedPath === item.path
+            ? "bg-mac-selected text-white"
+            : "text-gray-300"
+        }
       `}
     >
       <span className={item.color}>{getIcon(item.icon)}</span>

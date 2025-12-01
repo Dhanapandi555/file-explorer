@@ -1,8 +1,8 @@
-import React from 'react';
-import { FileSystemItem, SortBy, SortOrder } from '../types';
-import { fileSystemAPI } from '../utils/fileSystem';
-import FileIcon from './FileIcon';
-import { ChevronUp, ChevronDown, Info } from 'lucide-react';
+import React from "react";
+import { FileSystemItem, SortBy, SortOrder } from "../types";
+import { fileSystemAPI } from "../utils/fileSystem";
+import FileIcon from "./FileIcon";
+import { ChevronUp, ChevronDown, Info } from "lucide-react";
 
 interface ListViewProps {
   items: FileSystemItem[];
@@ -13,7 +13,6 @@ interface ListViewProps {
   sortOrder: SortOrder;
   onSort: (field: SortBy) => void;
   onToggleInfo: (item: FileSystemItem) => void;
-  selectedFileForInfo: FileSystemItem | null;
 }
 
 const ListView: React.FC<ListViewProps> = ({
@@ -25,11 +24,14 @@ const ListView: React.FC<ListViewProps> = ({
   sortOrder,
   onSort,
   onToggleInfo,
-  selectedFileForInfo,
 }) => {
   const renderSortIcon = (field: SortBy) => {
     if (sortBy !== field) return null;
-    return sortOrder === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+    return sortOrder === "asc" ? (
+      <ChevronUp size={14} />
+    ) : (
+      <ChevronDown size={14} />
+    );
   };
 
   return (
@@ -37,28 +39,28 @@ const ListView: React.FC<ListViewProps> = ({
       {/* Header */}
       <div className="flex items-center bg-mac-sidebar border-b border-mac-border text-xs font-medium text-gray-400 sticky top-0 z-10">
         <button
-          onClick={() => onSort('name')}
+          onClick={() => onSort("name")}
           className="flex items-center gap-1 px-4 py-2 hover:bg-mac-hover transition-smooth flex-1"
         >
-          Name {renderSortIcon('name')}
+          Name {renderSortIcon("name")}
         </button>
         <button
-          onClick={() => onSort('date')}
+          onClick={() => onSort("date")}
           className="flex items-center gap-1 px-4 py-2 hover:bg-mac-hover transition-smooth w-48"
         >
-          Date Modified {renderSortIcon('date')}
+          Date Modified {renderSortIcon("date")}
         </button>
         <button
-          onClick={() => onSort('size')}
+          onClick={() => onSort("size")}
           className="flex items-center gap-1 px-4 py-2 hover:bg-mac-hover transition-smooth w-32"
         >
-          Size {renderSortIcon('size')}
+          Size {renderSortIcon("size")}
         </button>
         <button
-          onClick={() => onSort('kind')}
+          onClick={() => onSort("kind")}
           className="flex items-center gap-1 px-4 py-2 hover:bg-mac-hover transition-smooth w-40"
         >
-          Kind {renderSortIcon('kind')}
+          Kind {renderSortIcon("kind")}
         </button>
         <div className="w-12"></div> {/* Space for info icon */}
       </div>
@@ -73,9 +75,10 @@ const ListView: React.FC<ListViewProps> = ({
             className={`
               flex items-center text-sm cursor-pointer transition-smooth
               border-b border-mac-border/50
-              ${selectedItems.has(item.path) 
-                ? 'bg-mac-selected text-white' 
-                : 'hover:bg-mac-hover text-gray-200'
+              ${
+                selectedItems.has(item.path)
+                  ? "bg-mac-selected text-white"
+                  : "hover:bg-mac-hover text-gray-200"
               }
             `}
           >
@@ -87,7 +90,9 @@ const ListView: React.FC<ListViewProps> = ({
               {fileSystemAPI.formatDate(item.modified)}
             </div>
             <div className="px-4 py-2 w-32 text-gray-400">
-              {item.isDirectory ? '--' : fileSystemAPI.formatFileSize(item.size)}
+              {item.isDirectory
+                ? "--"
+                : fileSystemAPI.formatFileSize(item.size)}
             </div>
             <div className="px-4 py-2 w-40 text-gray-400 truncate">
               {fileSystemAPI.getFileKind(item)}
