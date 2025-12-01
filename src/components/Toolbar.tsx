@@ -9,7 +9,8 @@ import {
   Search,
   MoreHorizontal,
   Share2,
-  Tag
+  Tag,
+  FolderOpen
 } from 'lucide-react';
 import { ViewMode } from '../types';
 
@@ -23,6 +24,7 @@ interface ToolbarProps {
   canGoForward: boolean;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onSelectNewFolder: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -35,14 +37,24 @@ const Toolbar: React.FC<ToolbarProps> = ({
   canGoForward,
   searchQuery,
   onSearchChange,
+  onSelectNewFolder,
 }) => {
   const pathParts = currentPath.split('/').filter(Boolean);
-  const displayPath = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'Home';
+  const displayPath = pathParts.length > 0 ? pathParts[pathParts.length - 1] : currentPath;
 
   return (
-    <div className="h-12 bg-mac-sidebar border-b border-mac-border flex items-center justify-between px-4 gap-4">
+    <div 
+    className="h-12 bg-mac-sidebar border-b border-mac-border flex items-center justify-between px-4 gap-4"
+    >
       {/* Left Section - Navigation */}
       <div className="flex items-center gap-2">
+        <button
+          onClick={onSelectNewFolder}
+          className="p-1.5 rounded-md transition-smooth hover:bg-mac-hover text-gray-300"
+          title="Change Folder"
+        >
+          <FolderOpen size={18} />
+        </button>
         <button
           onClick={onNavigateBack}
           disabled={!canGoBack}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   HardDrive, 
@@ -12,7 +12,8 @@ import {
   Clock,
   Trash2
 } from 'lucide-react';
-import { SidebarItem } from '../types';
+import { SidebarItem, FileSystemItem } from '../types';
+import { fileSystemAPI } from '../utils/fileSystem';
 
 interface SidebarProps {
   selectedPath: string;
@@ -20,21 +21,29 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ selectedPath, onSelectPath }) => {
-  const favoriteItems: SidebarItem[] = [
-    { name: 'Desktop', icon: 'home', path: '/Users/Dhandapani/Desktop', color: 'text-blue-400' },
-    { name: 'Documents', icon: 'file', path: '/Users/Dhandapani/Documents', color: 'text-blue-400' },
-    { name: 'Downloads', icon: 'download', path: '/Users/Dhandapani/Downloads', color: 'text-blue-400' },
-    { name: 'Projects', icon: 'folder', path: '/Users/Dhandapani/Projects', color: 'text-blue-400' },
-  ];
+  const [rootItems, setRootItems] = useState<FileSystemItem[]>([]);
+  const rootPath = fileSystemAPI.getRootPath();
+
+  // Load root directory items
+  useEffect(() => {
+    const loadRootItems = async () => {
+      if (fileSystemAPI.hasAccess()) {
+        const items = await fileSystemAPI.listDirectory(rootPath);
+        setRootItems(items.filter(item => item.isDirectory));
+      }
+    };
+    loadRootItems();
+  }, [rootPath]);
+
+  const favoriteItems: SidebarItem[] = rootItems.slice(0, 5).map(item => ({
+    name: item.name,
+    icon: 'folder',
+    path: item.path,
+    color: 'text-blue-400',
+  }));
 
   const locationItems: SidebarItem[] = [
-    { name: 'Home', icon: 'home', path: '/Users/Dhandapani', color: 'text-gray-400' },
-  ];
-
-  const mediaItems: SidebarItem[] = [
-    { name: 'Pictures', icon: 'image', path: '/Users/Dhandapani/Pictures', color: 'text-purple-400' },
-    { name: 'Music', icon: 'music', path: '/Users/Dhandapani/Music', color: 'text-pink-400' },
-    { name: 'Videos', icon: 'video', path: '/Users/Dhandapani/Videos', color: 'text-orange-400' },
+    { name: rootPath, icon: 'home', path: rootPath, color: 'text-gray-400' },
   ];
 
   const getIcon = (iconName: string) => {
@@ -71,32 +80,24 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedPath, onSelectPath }) => {
   return (
     <div className="w-48 bg-mac-sidebar border-r border-mac-border flex flex-col h-full overflow-y-auto">
       {/* Favorites Section */}
-      <div className="p-2">
-        <div className="text-xs font-semibold text-gray-500 px-3 py-2 uppercase tracking-wider">
-          Favorites
+      {favoriteItems.length > 0 && (
+        <div className="p-2">
+          <div className="text-xs font-semibold text-gray-500 px-3 py-2 uppercase tracking-wider">
+            Favorites
+          </div>
+          <div className="space-y-0.5">
+            {favoriteItems.map(renderSidebarItem)}
+          </div>
         </div>
-        <div className="space-y-0.5">
-          {favoriteItems.map(renderSidebarItem)}
-        </div>
-      </div>
+      )}
 
       {/* Locations Section */}
       <div className="p-2">
         <div className="text-xs font-semibold text-gray-500 px-3 py-2 uppercase tracking-wider">
-          Locations
+          Location
         </div>
         <div className="space-y-0.5">
           {locationItems.map(renderSidebarItem)}
-        </div>
-      </div>
-
-      {/* Media Section */}
-      <div className="p-2">
-        <div className="text-xs font-semibold text-gray-500 px-3 py-2 uppercase tracking-wider">
-          Media
-        </div>
-        <div className="space-y-0.5">
-          {mediaItems.map(renderSidebarItem)}
         </div>
       </div>
 

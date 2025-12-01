@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="folderGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4dabf7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#339af0;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="0" dy="5" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+  </defs>
+  <path d="M64 96 C64 78.3 78.3 64 96 64 L200 64 L248 112 L416 112 C433.7 112 448 126.3 448 144 L448 416 C448 433.7 433.7 448 416 448 L96 448 C78.3 448 64 433.7 64 416 Z" fill="url(#folderGradient)" filter="url(#dropShadow)"/>
+  <path d="M64 160 L448 160 L448 416 C448 433.7 433.7 448 416 448 L96 448 C78.3 448 64 433.7 64 416 Z" fill="#228be6" opacity="0.1"/>
+  <path d="M96 144 L200 144 L232 112 L96 112 C78.3 112 64 126.3 64 144 L64 160 C64 142.3 78.3 128 96 128 Z" fill="#74c0fc" opacity="0.4"/>
+</svg>

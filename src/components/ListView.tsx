@@ -2,7 +2,7 @@ import React from 'react';
 import { FileSystemItem, SortBy, SortOrder } from '../types';
 import { fileSystemAPI } from '../utils/fileSystem';
 import FileIcon from './FileIcon';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Info } from 'lucide-react';
 
 interface ListViewProps {
   items: FileSystemItem[];
@@ -12,6 +12,8 @@ interface ListViewProps {
   sortBy: SortBy;
   sortOrder: SortOrder;
   onSort: (field: SortBy) => void;
+  onToggleInfo: (item: FileSystemItem) => void;
+  selectedFileForInfo: FileSystemItem | null;
 }
 
 const ListView: React.FC<ListViewProps> = ({
@@ -22,6 +24,8 @@ const ListView: React.FC<ListViewProps> = ({
   sortBy,
   sortOrder,
   onSort,
+  onToggleInfo,
+  selectedFileForInfo,
 }) => {
   const renderSortIcon = (field: SortBy) => {
     if (sortBy !== field) return null;
@@ -56,6 +60,7 @@ const ListView: React.FC<ListViewProps> = ({
         >
           Kind {renderSortIcon('kind')}
         </button>
+        <div className="w-12"></div> {/* Space for info icon */}
       </div>
 
       {/* Items */}
@@ -86,6 +91,18 @@ const ListView: React.FC<ListViewProps> = ({
             </div>
             <div className="px-4 py-2 w-40 text-gray-400 truncate">
               {fileSystemAPI.getFileKind(item)}
+            </div>
+            <div className="w-12 flex items-center justify-center">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleInfo(item);
+                }}
+                className="p-1.5 rounded-md transition-smooth text-gray-400 hover:text-gray-200 hover:bg-mac-hover"
+                title="Toggle Info Panel"
+              >
+                <Info size={16} />
+              </button>
             </div>
           </div>
         ))}

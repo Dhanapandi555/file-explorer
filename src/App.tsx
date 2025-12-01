@@ -1,15 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Toolbar from './components/Toolbar';
 import ListView from './components/ListView';
 import IconView from './components/IconView';
 import ColumnView from './components/ColumnView';
 import GalleryView from './components/GalleryView';
+import FilePreview from './components/FilePreview';
+import FileInfoPanel from './components/FileInfoPanel';
+import Alert, { AlertType } from './components/Alert';
 import { FileSystemItem, ViewMode, SortBy, SortOrder } from './types';
 import { fileSystemAPI } from './utils/fileSystem';
+import { FolderOpen, Info } from 'lucide-react';
+
+interface AlertState {
+  show: boolean;
+  type: AlertType;
+  title: string;
+  message: string;
+  actions?: {
+    label: string;
+    onClick: () => void;
+    primary?: boolean;
+  }[];
+}
 
 function App() {
-  const [currentPath, setCurrentPath] = useState<string>('/Users/Dhandapani');
+  const [currentPath, setCurrentPath] = useState<string>('');
   const [items, setItems] = useState<FileSystemItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<FileSystemItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -17,15 +33,66 @@ function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortBy>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [history, setHistory] = useState<string[]>(['/Users/Dhandapani']);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [hasAccess, setHasAccess] = useState<boolean>(false);
+  const [previewFile, setPreviewFile] = useState<FileSystemItem | null>(null);
+  const [showInfoPanel, setShowInfoPanel] = useState<boolean>(false);
+  const [selectedFileForInfo, setSelectedFileForInfo] = useState<FileSystemItem | null>(null);
+  const [alert, setAlert] = useState<AlertState>({
+    show: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (type: AlertType, title: string, message: string, actions?: AlertState['actions']) => {
+    setAlert({ show: true, type, title, message, actions });
+  };
+
+  const closeAlert = () => {
+    setAlert({ ...alert, show: false });
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC to close preview
+      if (e.key === 'Escape' && previewFile) {
+        setPreviewFile(null);
+      }
+      // I to toggle info panel
+      if (e.key === 'i' && !e.metaKey && !e.ctrlKey && selectedFileForInfo) {
+        setShowInfoPanel(!showInfoPanel);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewFile, showInfoPanel, selectedFileForInfo]);
 
   // Load directory contents
   useEffect(() => {
     const loadDirectory = async () => {
-      const directoryItems = await fileSystemAPI.listDirectory(currentPath);
-      setItems(directoryItems);
-      setSelectedItems(new Set());
+      if (!currentPath) return;
+      
+      try {
+        const directoryItems = await fileSystemAPI.listDirectory(currentPath);
+        setItems(directoryItems);
+        setSelectedItems(new Set());
+      } catch (error) {
+        console.error('Error loading directory:', error);
+        showAlert(
+          'error',
+          'Cannot Access Folder',
+          'This folder cannot be accessed. It may contain system files or you may not have permission to view it. Please select a different folder.',
+          [
+            { label: 'Go Back', onClick: handleNavigateBack, primary: false },
+            { label: 'Select New Folder', onClick: handleSelectNewFolder, primary: true }
+          ]
+        );
+        setItems([]);
+      }
     };
     loadDirectory();
   }, [currentPath]);
@@ -107,6 +174,11 @@ function App() {
       setSelectedItems(newSelected);
     } else {
       setSelectedItems(new Set([path]));
+      // Update info panel with selected file
+      const item = filteredItems.find(i => i.path === path);
+      if (item) {
+        setSelectedFileForInfo(item);
+      }
     }
   };
 
@@ -114,9 +186,8 @@ function App() {
     if (item.isDirectory) {
       handleNavigate(item.path);
     } else {
-      // In a real app, this would open the file
-      console.log('Opening file:', item.path);
-      alert(`Opening: ${item.name}\n\nIn a real application, this would open the file with the default application.`);
+      // Show file preview
+      setPreviewFile(item);
     }
   };
 
@@ -126,6 +197,17 @@ function App() {
     } else {
       setSortBy(field);
       setSortOrder('asc');
+    }
+  };
+
+  const handleToggleInfo = (item: FileSystemItem) => {
+    if (selectedFileForInfo?.path === item.path) {
+      // If clicking the same item, toggle the panel
+      setShowInfoPanel(!showInfoPanel);
+    } else {
+      // If clicking a different item, show panel and update selection
+      setSelectedFileForInfo(item);
+      setShowInfoPanel(true);
     }
   };
 
@@ -141,6 +223,8 @@ function App() {
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSort={handleSort}
+            onToggleInfo={handleToggleInfo}
+            selectedFileForInfo={selectedFileForInfo}
           />
         );
       case 'icons':
@@ -174,6 +258,118 @@ function App() {
     }
   };
 
+  const handleSelectNewFolder = async () => {
+    try {
+      const result = await fileSystemAPI.requestDirectoryAccess();
+      if (result) {
+        setCurrentPath(result.path);
+        setHistory([result.path]);
+        setHistoryIndex(0);
+        setHasAccess(true);
+        showAlert('success', 'Folder Selected', `Successfully opened "${result.path}"`);
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message || '';
+      
+      // Check if it's a system folder restriction
+      if (errorMessage.includes('system') || errorMessage.includes('permission')) {
+        showAlert(
+          'warning',
+          'System Folder Restricted',
+          'This folder contains system files that browsers cannot access for security reasons. Please select a folder from your home directory like Documents, Downloads, Desktop, or Projects.',
+          [
+            { label: 'Try Again', onClick: handleSelectNewFolder, primary: true }
+          ]
+        );
+      } else {
+        showAlert(
+          'error',
+          'Error Selecting Folder',
+          errorMessage || 'Failed to select folder. Please try again.'
+        );
+      }
+    }
+  };
+
+  // If no access, show folder selection screen
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-mac-content font-sf-pro p-8">
+        <div className="max-w-2xl w-full">
+          <div className="text-center mb-8">
+            <div className="mb-6">
+              <FolderOpen size={80} className="mx-auto text-blue-400" />
+            </div>
+            <h1 className="text-3xl font-semibold text-gray-200 mb-3">
+              Welcome to File Explorer
+            </h1>
+            <p className="text-gray-400 mb-6">
+              Select a folder to start browsing your files
+            </p>
+            <button
+              onClick={handleSelectNewFolder}
+              className="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-smooth text-lg"
+            >
+              Select Folder
+            </button>
+          </div>
+
+          {/* Browser Limitations Notice */}
+          <div className="bg-mac-sidebar border border-mac-border rounded-xl p-6 mt-8">
+            <h3 className="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">
+              <span>⚠️</span> Browser Security Limitations
+            </h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Due to browser security, some system folders are restricted. Here's what you need to know:
+            </p>
+
+            <div className="space-y-4">
+              {/* Accessible Folders */}
+              <div>
+                <h4 className="text-sm font-semibold text-green-400 mb-2">✅ Folders You CAN Access:</h4>
+                <ul className="text-sm text-gray-300 space-y-1 ml-4">
+                  <li>• <strong>Documents</strong> - /Users/Dhandapani/Documents</li>
+                  <li>• <strong>Downloads</strong> - /Users/Dhandapani/Downloads</li>
+                  <li>• <strong>Desktop</strong> - /Users/Dhandapani/Desktop</li>
+                  <li>• <strong>Projects</strong> - /Users/Dhandapani/Projects</li>
+                  <li>• <strong>Pictures</strong> - /Users/Dhandapani/Pictures</li>
+                  <li>• Any folder in your <strong>home directory</strong></li>
+                  <li>• External drives and USB drives</li>
+                </ul>
+              </div>
+
+              {/* Restricted Folders */}
+              <div>
+                <h4 className="text-sm font-semibold text-red-400 mb-2">❌ Folders You CANNOT Access:</h4>
+                <ul className="text-sm text-gray-300 space-y-1 ml-4">
+                  <li>• <strong>/Applications</strong> - System applications folder</li>
+                  <li>• <strong>/System</strong> - macOS system files</li>
+                  <li>• <strong>/Library</strong> - System library</li>
+                  <li>• <strong>/usr</strong>, <strong>/bin</strong>, <strong>/etc</strong> - System directories</li>
+                  <li>• Other users' home folders</li>
+                </ul>
+              </div>
+
+              {/* Recommendation */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-blue-400 mb-2">💡 Recommended:</h4>
+                <p className="text-sm text-gray-300">
+                  Start with your <strong>Documents</strong>, <strong>Downloads</strong>, or <strong>Projects</strong> folder. 
+                  These are guaranteed to work and contain your personal files.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Browser Info */}
+          <p className="text-xs text-gray-500 text-center mt-6">
+            This app requires Chrome, Edge, or another Chromium-based browser
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-mac-content font-sf-pro">
       {/* Toolbar */}
@@ -187,6 +383,7 @@ function App() {
         canGoForward={historyIndex < history.length - 1}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onSelectNewFolder={handleSelectNewFolder}
       />
 
       {/* Main Content */}
@@ -201,6 +398,14 @@ function App() {
         <div className="flex-1 bg-mac-content overflow-hidden">
           {renderContent()}
         </div>
+
+        {/* File Info Panel */}
+        {showInfoPanel && selectedFileForInfo && (
+          <FileInfoPanel
+            file={selectedFileForInfo}
+            onClose={() => setShowInfoPanel(false)}
+          />
+        )}
       </div>
 
       {/* Status Bar */}
@@ -213,6 +418,25 @@ function App() {
           {currentPath}
         </div>
       </div>
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <FilePreview
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
+
+      {/* Alert */}
+      {alert.show && (
+        <Alert
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          actions={alert.actions}
+          onClose={closeAlert}
+        />
+      )}
     </div>
   );
 }
